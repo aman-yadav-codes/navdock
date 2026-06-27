@@ -649,6 +649,33 @@ export const MobileDock: React.FC<MobileDockProps> = ({
     };
   }, [expanded, submenuStack.length, aiPanelVisible, commandPaletteVisible]);
 
+  // Sync browser history state when overlays open to intercept mobile Back button
+  useEffect(() => {
+    const isCurrentlyOpen = expanded || submenuStack.length > 0 || aiPanelVisible || commandPaletteVisible;
+    if (isCurrentlyOpen) {
+      if (window.history.state?.panelOpen !== true) {
+        window.history.pushState({ panelOpen: true }, '');
+      }
+    } else {
+      if (window.history.state?.panelOpen === true) {
+        window.history.back();
+      }
+    }
+  }, [expanded, submenuStack.length, aiPanelVisible, commandPaletteVisible]);
+
+  // Handle popstate event when user clicks browser/device Back button
+  useEffect(() => {
+    const handlePopState = () => {
+      const isCurrentlyOpen = expanded || submenuStack.length > 0 || aiPanelVisible || commandPaletteVisible;
+      if (isCurrentlyOpen) {
+        closeAllPanels();
+        setExpanded(false);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [expanded, submenuStack.length, aiPanelVisible, commandPaletteVisible]);
+
   // Long press helper for buttons (context menus)
   const startLongPress = (e: React.TouchEvent | React.MouseEvent, item: DockItem) => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
