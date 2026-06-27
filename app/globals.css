@@ -1002,10 +1002,43 @@
 }
 
 .page-content {
-  padding: 20px;
+  width: 100%;
+  padding: 16px;
   padding-bottom: 140px;
-  max-width: 600px;
   margin: 0 auto;
+}
+
+@media (min-width: 640px) {
+  .page-content {
+    max-width: 600px;
+  }
+}
+
+@media (min-width: 768px) {
+  .page-content {
+    max-width: 720px;
+    padding: 24px;
+    padding-bottom: 150px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-content {
+    max-width: 960px;
+    padding: 40px 24px 160px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .page-content {
+    max-width: 1200px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .page-content {
+    max-width: 1400px;
+  }
 }
 
 .section-card {
@@ -1212,6 +1245,24 @@
   line-height: 1.2;
 }
 
+@media (min-width: 768px) {
+  .hero h1 {
+    font-size: 48px;
+  }
+  .hero p {
+    font-size: 17px !important;
+    max-width: 600px !important;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero h1 {
+    font-size: 56px;
+  }
+}
+
 .hero h1 .accent-text {
   color: var(--accent);
 }
@@ -1227,6 +1278,13 @@
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-top: 20px;
+}
+
+@media (min-width: 768px) {
+  .feature-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
 }
 
 .feature-item {
@@ -1267,7 +1325,21 @@
 
 @media (min-width: 768px) {
   .menu-cards {
-    max-width: 600px;
+    max-width: 740px;
+    overflow-x: auto;
+  }
+  .menu-card {
+    min-width: 220px;
+    max-width: 220px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .menu-cards {
+    max-width: calc(100% - 40px);
+    overflow-x: auto;
+    justify-content: safe center;
+    padding: 8px 12px;
   }
   .menu-card {
     min-width: 230px;
