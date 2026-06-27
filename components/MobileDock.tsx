@@ -1263,15 +1263,23 @@ export const MobileDock: React.FC<MobileDockProps> = ({
             />
             {(() => {
               const contextMenuWidth = 180;
+              const contextMenuHeight = 175;
               let leftPos = contextMenu.x;
-              let topPos = contextMenu.y - 120;
+              let topPos = contextMenu.y - contextMenuHeight - 10;
               
               if (typeof window !== 'undefined') {
-                if (leftPos + contextMenuWidth > window.innerWidth - 16) {
-                  leftPos = Math.max(16, window.innerWidth - contextMenuWidth - 16);
+                if (contextMenu.x > window.innerWidth / 2) {
+                  leftPos = contextMenu.x - contextMenuWidth;
+                } else {
+                  leftPos = contextMenu.x;
                 }
+                leftPos = Math.max(16, Math.min(leftPos, window.innerWidth - contextMenuWidth - 16));
+                
                 if (topPos < 16) {
-                  topPos = contextMenu.y + 20;
+                  topPos = Math.max(16, contextMenu.y + 20);
+                }
+                if (topPos + contextMenuHeight > window.innerHeight - 70) {
+                  topPos = Math.max(16, window.innerHeight - contextMenuHeight - 75);
                 }
               }
               
@@ -1303,6 +1311,14 @@ export const MobileDock: React.FC<MobileDockProps> = ({
                     <Icons.Trash2 className="w-4 h-4 text-[var(--accent)]" />
                     <span>Remove</span>
                   </div>
+
+                  {/* Tooltip triangle arrow */}
+                  <div
+                    className={topPos > contextMenu.y ? "context-menu-arrow arrow-top" : "context-menu-arrow arrow-bottom"}
+                    style={{
+                      left: `${Math.max(12, Math.min(contextMenuWidth - 12, contextMenu.x - leftPos))}px`
+                    }}
+                  />
                 </motion.div>
               );
             })()}

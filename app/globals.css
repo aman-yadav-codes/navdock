@@ -1390,6 +1390,30 @@
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
 }
 
+.context-menu-arrow {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: var(--card-bg);
+  pointer-events: none;
+}
+
+.context-menu-arrow.arrow-bottom {
+  bottom: -6px;
+  border-right: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--card-border);
+  transform: rotate(45deg) translateX(-50%);
+  transform-origin: center;
+}
+
+.context-menu-arrow.arrow-top {
+  top: -6px;
+  border-left: 1px solid var(--card-border);
+  border-top: 1px solid var(--card-border);
+  transform: rotate(45deg) translateX(-50%);
+  transform-origin: center;
+}
+
 .context-menu.visible {
   opacity: 1;
   transform: scale(1);
