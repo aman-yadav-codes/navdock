@@ -1,0 +1,2151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Smart Dock Blueprint — Advanced Mobile Dock</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+@import url('https://cdn.jsdelivr.net/npm/fontsource-inter@5.0.0/index.css');
+
+:root {
+  --accent: #DC2626;
+  --accent-rgb: 220, 38, 38;
+  --accent-light: #EF4444;
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #111111;
+  --bg-tertiary: #1a1a1a;
+  --glass-bg: rgba(15, 15, 15, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-highlight: rgba(255, 255, 255, 0.04);
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  --text-muted: #666666;
+  --glow-color: rgba(220, 38, 38, 0.3);
+  --card-bg: rgba(20, 20, 20, 0.9);
+  --card-border: rgba(255, 255, 255, 0.06);
+  --section-bg: rgba(18, 18, 18, 0.95);
+}
+
+[data-theme="light"] {
+  --accent: #DC2626;
+  --accent-rgb: 220, 38, 38;
+  --accent-light: #EF4444;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f8f8;
+  --bg-tertiary: #f0f0f0;
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-highlight: rgba(0, 0, 0, 0.03);
+  --text-primary: #111111;
+  --text-secondary: #666666;
+  --text-muted: #999999;
+  --glow-color: rgba(220, 38, 38, 0.2);
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --card-border: rgba(0, 0, 0, 0.06);
+  --section-bg: rgba(248, 248, 248, 0.95);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background 0.4s ease, color 0.4s ease;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 4px; }
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--card-border);
+}
+
+.ambient-glow {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
+  height: 200px;
+  background: radial-gradient(ellipse, var(--glow-color), transparent 70%);
+  pointer-events: none;
+  z-index: 40;
+  opacity: 0.5;
+  transition: opacity 0.5s ease;
+}
+
+.ambient-glow.expanded { opacity: 0.8; }
+
+.dock-container {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dock-container.hidden-dock {
+  transform: translateX(-50%) translateY(120px);
+}
+
+.dock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 28px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(30px) saturate(1.8);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.02) inset;
+  position: relative;
+}
+
+.dock-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 10px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
+}
+
+.dock-btn:hover { background: var(--glass-highlight); }
+.dock-btn:active { transform: scale(0.9); }
+
+.dock-btn.active .dock-icon {
+  color: var(--accent);
+  filter: drop-shadow(0 0 6px var(--glow-color));
+}
+
+.dock-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+
+.dock-icon {
+  width: 22px;
+  height: 22px;
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+}
+
+.dock-btn-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.center-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  margin: 0 4px;
+  box-shadow: 0 4px 20px var(--glow-color), 0 0 0 2px rgba(var(--accent-rgb), 0.15);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.center-btn:hover { transform: scale(1.08); }
+.center-btn:active { transform: scale(0.92); }
+
+.center-btn .dock-icon {
+  width: 24px;
+  height: 24px;
+  color: #ffffff;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 4px 20px var(--glow-color), 0 0 0 2px rgba(var(--accent-rgb), 0.15); }
+  50% { box-shadow: 0 4px 30px var(--glow-color), 0 0 0 4px rgba(var(--accent-rgb), 0.08); }
+}
+
+.drag-handle {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--text-muted);
+  opacity: 0.4;
+  cursor: grab;
+  transition: all 0.3s ease;
+}
+
+.drag-handle:hover { opacity: 0.7; width: 44px; }
+
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.menu-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.menu-cards {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 95;
+  width: calc(100% - 24px);
+  max-width: 480px;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 4px;
+  scroll-behavior: smooth;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.menu-cards::-webkit-scrollbar { display: none; }
+
+.menu-card {
+  min-width: 210px;
+  max-width: 210px;
+  border-radius: 18px;
+  padding: 14px;
+  background: var(--card-bg);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  opacity: 0;
+  transform: translateY(30px) scale(0.95);
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.menu-card.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.menu-card:hover {
+  border-color: rgba(var(--accent-rgb), 0.2);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(var(--accent-rgb), 0.1);
+}
+
+.menu-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.menu-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-card-icon svg { width: 16px; height: 16px; color: var(--accent); }
+
+.menu-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.menu-card-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.menu-item:hover { background: var(--glass-highlight); }
+.menu-item:active { transform: scale(0.97); }
+
+.menu-item-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.menu-item-icon svg { width: 14px; height: 14px; color: var(--text-secondary); }
+
+.menu-item-text {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+  flex: 1;
+}
+
+.menu-item-arrow {
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+}
+
+.menu-item-badge {
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.submenu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  background: var(--bg-primary);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.submenu-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.submenu-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 100%;
+  max-width: 400px;
+  height: 100%;
+  background: var(--bg-primary);
+  z-index: 111;
+  transform: translateX(100%);
+  transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.submenu-panel.visible { transform: translateX(0); }
+
+.submenu-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.submenu-back {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--glass-highlight);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.submenu-back:hover { background: rgba(var(--accent-rgb), 0.15); }
+.submenu-back svg { width: 18px; height: 18px; color: var(--accent); }
+
+.submenu-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.breadcrumb-item { cursor: pointer; transition: color 0.2s; }
+.breadcrumb-item:hover { color: var(--accent); }
+.breadcrumb-sep { color: var(--text-muted); }
+
+.grid-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.grid-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.04);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+}
+
+.grid-item:hover {
+  background: rgba(var(--accent-rgb), 0.08);
+  border-color: rgba(var(--accent-rgb), 0.15);
+}
+
+.grid-item:active { transform: scale(0.95); }
+
+.grid-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grid-item-icon svg { width: 18px; height: 18px; color: var(--accent); }
+
+.grid-item-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-align: center;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(var(--accent-rgb), 0.08);
+  border: 1px solid rgba(var(--accent-rgb), 0.12);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 8px;
+  min-height: 44px;
+}
+
+.action-btn:hover {
+  background: rgba(var(--accent-rgb), 0.15);
+  transform: translateX(4px);
+}
+
+.action-btn svg { width: 18px; height: 18px; color: var(--accent); }
+.action-btn span { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+
+.social-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.03);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 6px;
+  min-height: 44px;
+}
+
+.social-btn:hover { background: rgba(255,255,255,0.06); }
+
+.social-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.03);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 6px;
+  min-height: 44px;
+}
+
+.theme-option:hover { background: rgba(255,255,255,0.06); }
+.theme-option.active { border: 1px solid var(--accent); background: rgba(var(--accent-rgb), 0.08); }
+
+.theme-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.1);
+}
+
+.accent-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s;
+  border: 2px solid transparent;
+}
+
+.accent-dot:hover { transform: scale(1.3); }
+.accent-dot.active { border-color: var(--text-primary); transform: scale(1.2); }
+
+.search-input {
+  width: 100%;
+  padding: 10px 14px 10px 38px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  transition: all 0.2s ease;
+  margin-bottom: 12px;
+}
+
+.search-input:focus {
+  border-color: rgba(var(--accent-rgb), 0.3);
+  background: rgba(255,255,255,0.06);
+}
+
+.search-wrapper {
+  position: relative;
+}
+
+.search-wrapper svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+}
+
+.command-palette {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  width: calc(100% - 32px);
+  max-width: 440px;
+  max-height: 70vh;
+  background: var(--card-bg);
+  backdrop-filter: blur(30px);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+.command-palette.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.radial-menu {
+  position: fixed;
+  bottom: 110px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 98;
+  pointer-events: none;
+}
+
+.radial-item {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: auto;
+}
+
+.radial-item.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.radial-item:hover {
+  background: rgba(var(--accent-rgb), 0.15);
+  border-color: rgba(var(--accent-rgb), 0.3);
+}
+
+.radial-item svg { width: 18px; height: 18px; color: var(--accent); }
+
+.notif-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-primary);
+}
+
+/* Mini Player - now also auto-hides on scroll */
+.mini-player {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 480px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: var(--card-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--card-border);
+  z-index: 85;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  transform: translateX(-50%) translateY(20px);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+
+.mini-player.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+/* NEW: Hide mini player when scrolling down */
+.mini-player.hidden-player {
+  opacity: 0;
+  transform: translateX(-50%) translateY(80px);
+  pointer-events: none;
+}
+
+.mini-player-art {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mini-player-art svg { width: 20px; height: 20px; color: #ffffff; }
+
+.mini-player-info { flex: 1; min-width: 0; }
+.mini-player-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.mini-player-artist { font-size: 11px; color: var(--text-muted); }
+
+.mini-player-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.mini-player-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mini-player-btn:hover { background: rgba(var(--accent-rgb), 0.15); }
+.mini-player-btn svg { width: 14px; height: 14px; color: var(--text-primary); }
+
+.page-content {
+  padding: 20px;
+  padding-bottom: 140px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.section-card {
+  border-radius: 20px;
+  padding: 24px;
+  background: var(--section-bg);
+  border: 1px solid var(--card-border);
+  margin-bottom: 16px;
+}
+
+.magnetic { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100px);
+  padding: 12px 20px;
+  border-radius: 14px;
+  background: var(--card-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--card-border);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 300;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+
+.toast.visible { transform: translateX(-50%) translateY(0); }
+.toast svg { width: 16px; height: 16px; color: var(--accent); }
+
+.stagger-1 { transition-delay: 0.05s; }
+.stagger-2 { transition-delay: 0.1s; }
+.stagger-3 { transition-delay: 0.15s; }
+.stagger-4 { transition-delay: 0.2s; }
+
+.scroll-hint {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  font-size: 11px;
+  color: var(--text-muted);
+  z-index: 50;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.scroll-hint.visible { opacity: 1; }
+
+.view-all-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(var(--accent-rgb), 0.08);
+  border: 1px solid rgba(var(--accent-rgb), 0.12);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 8px;
+  min-height: 40px;
+}
+
+.view-all-btn:hover { background: rgba(var(--accent-rgb), 0.15); }
+.view-all-btn span { font-size: 12px; font-weight: 600; color: var(--accent); }
+.view-all-btn svg { width: 14px; height: 14px; color: var(--accent); }
+
+.workspace-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 44px;
+}
+
+.workspace-item:hover { background: var(--glass-highlight); }
+
+.workspace-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ai-panel {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 480px;
+  border-radius: 20px;
+  background: var(--card-bg);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--card-border);
+  z-index: 96;
+  padding: 20px;
+  opacity: 0;
+  transform: translateX(-50%) translateY(20px) scale(0.95);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+
+.ai-panel.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.ai-input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(var(--accent-rgb), 0.15);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.ai-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.1); }
+
+.ai-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.ai-chip {
+  padding: 10px 16px;
+  border-radius: 20px;
+  background: rgba(var(--accent-rgb), 0.08);
+  border: 1px solid rgba(var(--accent-rgb), 0.12);
+  font-size: 13px;
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.ai-chip:hover { background: rgba(var(--accent-rgb), 0.15); }
+
+.hero {
+  text-align: center;
+  padding: 60px 20px 40px;
+}
+
+.hero h1 {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+.hero h1 .accent-text {
+  color: var(--accent);
+}
+
+.hero p {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.feature-item {
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+.feature-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.feature-item-icon svg { width: 18px; height: 18px; color: var(--accent); }
+
+.feature-item-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+.feature-item-desc { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+
+@media (min-width: 768px) {
+  .menu-cards { max-width: 600px; }
+  .menu-card { min-width: 230px; max-width: 230px; }
+}
+
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.dock-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 16px;
+}
+
+.center-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.kbd {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--text-muted);
+}
+
+.context-menu {
+  position: fixed;
+  border-radius: 14px;
+  background: var(--card-bg);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--card-border);
+  z-index: 250;
+  padding: 6px;
+  min-width: 180px;
+  max-width: 220px;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+}
+
+.context-menu.visible {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.context-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 13px;
+  color: var(--text-primary);
+  min-height: 40px;
+}
+
+.context-item:hover { background: rgba(var(--accent-rgb), 0.1); }
+.context-item svg { width: 16px; height: 16px; color: var(--text-secondary); }
+.context-item.danger { color: var(--accent); }
+.context-item.danger svg { color: var(--accent); }
+
+.dragging {
+  opacity: 0.5;
+  transform: scale(1.05);
+  z-index: 10;
+}
+
+@keyframes haptic {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-1px); }
+  75% { transform: translateX(1px); }
+}
+
+.haptic { animation: haptic 0.1s ease; }
+
+.ai-panel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 94;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.ai-panel-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(var(--accent-rgb), 0.1);
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+
+.verified-badge svg { width: 14px; height: 14px; }
+
+.stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-top: 24px;
+}
+
+.stat-item { text-align: center; }
+.stat-number { font-size: 28px; font-weight: 800; color: var(--text-primary); }
+.stat-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+.edubird-search {
+  width: 100%;
+  padding: 16px 20px 16px 48px;
+  border-radius: 16px;
+  background: var(--card-bg);
+  border: 2px solid rgba(var(--accent-rgb), 0.3);
+  color: var(--text-primary);
+  font-size: 15px;
+  outline: none;
+  transition: all 0.2s ease;
+  margin-top: 20px;
+}
+
+.edubird-search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.1);
+}
+
+.edubird-search-wrapper {
+  position: relative;
+}
+
+.edubird-search-wrapper svg {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  color: var(--text-muted);
+}
+
+.edubird-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 12px;
+}
+
+.edubird-btn:hover { background: var(--accent-light); transform: translateY(-1px); }
+.edubird-btn:active { transform: translateY(0); }
+</style>
+</head>
+<body data-theme="dark" data-accent="red">
+
+<div class="ambient-glow" id="ambientGlow"></div>
+
+<div class="toast" id="toast">
+  <i data-lucide="check-circle"></i>
+  <span id="toastText">Action completed</span>
+</div>
+
+<div class="scroll-hint" id="scrollHint">Scroll down to hide dock</div>
+
+<div class="page-content" id="pageContent">
+  <div class="hero">
+    <div class="verified-badge">
+      <i data-lucide="check-circle"></i>
+      Verified Learning Platform
+    </div>
+    <h1>Find Your Perfect Course from <span class="accent-text">Top Institutes</span></h1>
+    <p>Discover verified courses from trusted educational institutions. Compare, enroll, and start your learning journey today.</p>
+    
+    <div class="edubird-search-wrapper">
+      <i data-lucide="search"></i>
+      <input class="edubird-search" placeholder="Search courses, institutes, or skills...">
+    </div>
+    <button class="edubird-btn" onclick="showToast('Searching courses...')">Search Courses</button>
+
+    <div class="stats-row">
+      <div class="stat-item">
+        <div class="stat-number">1,200+</div>
+        <div class="stat-label">Active Courses</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">50,000+</div>
+        <div class="stat-label">Students Enrolled</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;">✨ Interactive Features</h3>
+    <div class="feature-grid">
+      <div class="feature-item">
+        <div class="feature-item-icon"><i data-lucide="expand"></i></div>
+        <div class="feature-item-title">Expand Dock</div>
+        <div class="feature-item-desc">Tap center button or swipe up on handle</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-item-icon"><i data-lucide="layers"></i></div>
+        <div class="feature-item-title">Nested Menus</div>
+        <div class="feature-item-desc">iOS-style slide navigation with breadcrumbs</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-item-icon"><i data-lucide="search"></i></div>
+        <div class="feature-item-title">Command Palette</div>
+        <div class="feature-item-desc">Press ⌘K or long-press center button</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-item-icon"><i data-lucide="palette"></i></div>
+        <div class="feature-item-title">Theme Picker</div>
+        <div class="feature-item-desc">Dark/Light mode with red accent</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-item-icon"><i data-lucide="music"></i></div>
+        <div class="feature-item-title">Mini Player</div>
+        <div class="feature-item-desc">Floating music widget — hides on scroll</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-item-icon"><i data-lucide="sparkles"></i></div>
+        <div class="feature-item-title">AI Assistant</div>
+        <div class="feature-item-desc">Quick AI panel with suggestions</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;">🎯 Gestures</h3>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:12px;background:rgba(255,255,255,0.02);">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(var(--accent-rgb),0.1);display:flex;align-items:center;justify-content:center;"><i data-lucide="mouse-pointer-click" style="width:18px;height:18px;color:var(--accent);"></i></div>
+        <div><div style="font-size:13px;font-weight:600;">Tap Center Button</div><div style="font-size:11px;color:var(--text-muted);">Expands / Collapses dock</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:12px;background:rgba(255,255,255,0.02);">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(var(--accent-rgb),0.1);display:flex;align-items:center;justify-content:center;"><i data-lucide="arrow-up" style="width:18px;height:18px;color:var(--accent);"></i></div>
+        <div><div style="font-size:13px;font-weight:600;">Swipe Up on Handle</div><div style="font-size:11px;color:var(--text-muted);">Expands dock</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:12px;background:rgba(255,255,255,0.02);">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(var(--accent-rgb),0.1);display:flex;align-items:center;justify-content:center;"><i data-lucide="arrow-down" style="width:18px;height:18px;color:var(--accent);"></i></div>
+        <div><div style="font-size:13px;font-weight:600;">Swipe Down on Handle</div><div style="font-size:11px;color:var(--text-muted);">Collapses dock</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:12px;background:rgba(255,255,255,0.02);">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(var(--accent-rgb),0.1);display:flex;align-items:center;justify-content:center;"><i data-lucide="x-circle" style="width:18px;height:18px;color:var(--accent);"></i></div>
+        <div><div style="font-size:13px;font-weight:600;">Tap Outside</div><div style="font-size:11px;color:var(--text-muted);">Closes all menus & panels</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:12px;background:rgba(255,255,255,0.02);">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(var(--accent-rgb),0.1);display:flex;align-items:center;justify-content:center;"><i data-lucide="hand" style="width:18px;height:18px;color:var(--accent);"></i></div>
+        <div><div style="font-size:13px;font-weight:600;">Long Press Center</div><div style="font-size:11px;color:var(--text-muted);">Opens quick actions radial menu</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:12px;background:rgba(255,255,255,0.02);">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(var(--accent-rgb),0.1);display:flex;align-items:center;justify-content:center;"><i data-lucide="zap" style="width:18px;height:18px;color:var(--accent);"></i></div>
+        <div><div style="font-size:13px;font-weight:600;">Double Tap</div><div style="font-size:11px;color:var(--text-muted);">Jump to Home</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;">⌨️ Keyboard Shortcuts</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+        <span style="font-size:13px;color:var(--text-secondary);">Command Palette</span>
+        <span class="kbd">⌘K</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+        <span style="font-size:13px;color:var(--text-secondary);">Close Menus</span>
+        <span class="kbd">ESC</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+        <span style="font-size:13px;color:var(--text-secondary);">Navigate Items</span>
+        <span class="kbd">↑↓</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+        <span style="font-size:13px;color:var(--text-secondary);">Select Item</span>
+        <span class="kbd">Enter</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;"> Theme</h3>
+    <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Dark mode: Black & Red. Light mode: White & Red. Toggle theme from the Settings card in the expanded dock menu.</p>
+    <div style="display:flex;gap:12px;margin-top:16px;">
+      <button class="edubird-btn" style="flex:1;margin-top:0;" onclick="setTheme('dark')">Dark Mode</button>
+      <button class="edubird-btn" style="flex:1;margin-top:0;background:var(--text-primary);color:var(--bg-primary);" onclick="setTheme('light')">Light Mode</button>
+    </div>
+  </div>
+
+  <div style="height:200px;"></div>
+</div>
+
+<!-- Menu Overlay -->
+<div class="menu-overlay" id="menuOverlay"></div>
+
+<!-- Menu Cards -->
+<div class="menu-cards" id="menuCards"></div>
+
+<!-- AI Panel Overlay -->
+<div class="ai-panel-overlay" id="aiPanelOverlay"></div>
+
+<!-- Mini Player -->
+<div class="mini-player" id="miniPlayer">
+  <div class="mini-player-art"><i data-lucide="music"></i></div>
+  <div class="mini-player-info">
+    <div class="mini-player-title">Building the Future</div>
+    <div class="mini-player-artist">Smart Dock • Now Playing</div>
+  </div>
+  <div class="mini-player-controls">
+    <div class="mini-player-btn" onclick="showToast('Previous track')"><i data-lucide="skip-back" style="width:14px;height:14px;color:var(--text-primary);"></i></div>
+    <div class="mini-player-btn" id="playBtn" onclick="togglePlay()"><i data-lucide="pause" style="width:14px;height:14px;color:var(--accent);"></i></div>
+    <div class="mini-player-btn" onclick="showToast('Next track')"><i data-lucide="skip-forward" style="width:14px;height:14px;color:var(--text-primary);"></i></div>
+  </div>
+</div>
+
+<!-- AI Panel -->
+<div class="ai-panel" id="aiPanel">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+    <div style="width:32px;height:32px;border-radius:10px;background:rgba(var(--accent-rgb),0.15);display:flex;align-items:center;justify-content:center;">
+      <i data-lucide="sparkles" style="width:16px;height:16px;color:var(--accent);"></i>
+    </div>
+    <span style="font-size:16px;font-weight:700;color:var(--text-primary);">AI Assistant</span>
+  </div>
+  <input class="ai-input" placeholder="Ask me anything..." id="aiInput">
+  <div class="ai-suggestions">
+    <div class="ai-chip" onclick="showToast('Generating summary...')"> Summarize</div>
+    <div class="ai-chip" onclick="showToast('Finding projects...')">🔍 Find projects</div>
+    <div class="ai-chip" onclick="showToast('Drafting message...')">✉️ Draft email</div>
+    <div class="ai-chip" onclick="showToast('Creating task...')">✅ Create task</div>
+  </div>
+</div>
+
+<!-- Submenu Panel -->
+<div class="submenu-overlay" id="submenuOverlay"></div>
+<div class="submenu-panel" id="submenuPanel">
+  <div class="submenu-header">
+    <div class="submenu-back" id="submenuBack"><i data-lucide="chevron-left"></i></div>
+    <div class="submenu-title" id="submenuTitle">Projects</div>
+  </div>
+  <div class="breadcrumb" id="breadcrumb"></div>
+  <div id="submenuContent"></div>
+</div>
+
+<!-- Command Palette -->
+<div class="command-palette" id="commandPalette">
+  <div style="padding:16px 16px 0;">
+    <div class="search-wrapper">
+      <i data-lucide="search"></i>
+      <input class="search-input" placeholder="Type a command or search..." id="commandSearch" style="margin-bottom:0;">
+    </div>
+  </div>
+  <div style="padding:8px 16px 16px;max-height:50vh;overflow-y:auto;" id="commandResults">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin:12px 0 8px;font-weight:600;">Actions</div>
+    <div class="menu-item" onclick="executeCommand('home')"><div class="menu-item-icon"><i data-lucide="home"></i></div><span class="menu-item-text">Go to Home</span><span class="kbd">⌘H</span></div>
+    <div class="menu-item" onclick="executeCommand('projects')"><div class="menu-item-icon"><i data-lucide="folder"></i></div><span class="menu-item-text">Open Projects</span><span class="kbd">⌘P</span></div>
+    <div class="menu-item" onclick="executeCommand('theme')"><div class="menu-item-icon"><i data-lucide="palette"></i></div><span class="menu-item-text">Change Theme</span></div>
+    <div class="menu-item" onclick="executeCommand('search')"><div class="menu-item-icon"><i data-lucide="search"></i></div><span class="menu-item-text">Search Courses</span><span class="kbd">⌘S</span></div>
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin:16px 0 8px;font-weight:600;">Navigation</div>
+    <div class="menu-item" onclick="executeCommand('about')"><div class="menu-item-icon"><i data-lucide="user"></i></div><span class="menu-item-text">About Section</span></div>
+    <div class="menu-item" onclick="executeCommand('contact')"><div class="menu-item-icon"><i data-lucide="mail"></i></div><span class="menu-item-text">Contact</span></div>
+    <div class="menu-item" onclick="executeCommand('settings')"><div class="menu-item-icon"><i data-lucide="settings"></i></div><span class="menu-item-text">Settings</span><span class="kbd">⌘,</span></div>
+  </div>
+</div>
+
+<!-- Radial Menu -->
+<div class="radial-menu" id="radialMenu"></div>
+
+<!-- Context Menu -->
+<div class="context-menu" id="contextMenu">
+  <div class="context-item" onclick="handleContextAction('pin')"><i data-lucide="pin"></i>Pin to Dock</div>
+  <div class="context-item" onclick="handleContextAction('favorite')"><i data-lucide="star"></i>Add to Favorites</div>
+  <div class="context-item" onclick="handleContextAction('share')"><i data-lucide="share-2"></i>Share</div>
+  <div class="context-item danger" onclick="handleContextAction('remove')"><i data-lucide="trash-2"></i>Remove</div>
+</div>
+
+<!-- Dock Container -->
+<div class="dock-container" id="dockContainer">
+  <div class="dock" id="dock" role="navigation" aria-label="Main navigation dock">
+    <div class="drag-handle" id="dragHandle" role="button" aria-label="Drag to expand dock" tabindex="0"></div>
+
+    <div class="dock-btn active" data-tab="home" onclick="switchTab('home')" role="button" aria-label="Home" tabindex="0">
+      <i data-lucide="home" class="dock-icon"></i>
+      <span class="dock-btn-label">Home</span>
+    </div>
+
+    <div class="dock-btn" data-tab="about" onclick="switchTab('about')" role="button" aria-label="About" tabindex="0">
+      <i data-lucide="user" class="dock-icon"></i>
+      <span class="dock-btn-label">About</span>
+    </div>
+
+    <div class="center-btn" id="centerBtn" role="button" aria-label="Expand dock menu" tabindex="0">
+      <i data-lucide="plus" class="dock-icon" id="centerIcon"></i>
+    </div>
+
+    <div class="dock-btn" data-tab="projects" onclick="switchTab('projects')" role="button" aria-label="Projects" tabindex="0" style="position:relative;">
+      <i data-lucide="folder-kanban" class="dock-icon"></i>
+      <span class="dock-btn-label">Projects</span>
+      <div class="notif-badge">3</div>
+    </div>
+
+    <div class="dock-btn" data-tab="contact" onclick="switchTab('contact')" role="button" aria-label="Contact" tabindex="0">
+      <i data-lucide="send" class="dock-icon"></i>
+      <span class="dock-btn-label">Contact</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const state = {
+  expanded: false,
+  activeTab: 'home',
+  activeCard: null,
+  submenuStack: [],
+  theme: 'dark',
+  accent: 'red',
+  isPlaying: true,
+  lastTap: 0,
+  dockHidden: false,
+  playerHidden: false,
+  lastScrollY: 0,
+  longPressTimer: null,
+  touchStartY: 0,
+  touchStartX: 0,
+};
+
+const menuData = {
+  projects: {
+    title: 'Projects',
+    icon: 'folder-kanban',
+    subtitle: '5 items',
+    type: 'list',
+    items: [
+      { id: 'all', label: 'All Projects', icon: 'layout-grid', hasSubmenu: true, submenu: 'all-projects' },
+      { id: 'web', label: 'Web Apps', icon: 'globe', hasSubmenu: true, submenu: 'web-apps' },
+      { id: 'mobile', label: 'Mobile Apps', icon: 'smartphone', hasSubmenu: true, submenu: 'mobile-apps' },
+      { id: 'ui', label: 'UI/UX Designs', icon: 'palette', hasSubmenu: true, submenu: 'ui-designs' },
+      { id: 'case', label: 'Case Studies', icon: 'file-text', hasSubmenu: true, submenu: 'case-studies' },
+    ]
+  },
+  quickActions: {
+    title: 'Quick Actions',
+    icon: 'zap',
+    subtitle: 'Fast access',
+    type: 'action',
+    items: [
+      { id: 'resume', label: 'Open Resume', icon: 'file-text' },
+      { id: 'cv', label: 'Download CV', icon: 'download' },
+      { id: 'call', label: 'Schedule Call', icon: 'calendar' },
+      { id: 'email', label: 'Send Email', icon: 'mail' },
+    ]
+  },
+  tools: {
+    title: 'Tools',
+    icon: 'wrench',
+    subtitle: 'Utilities',
+    type: 'grid',
+    items: [
+      { id: 'code', label: 'Code Sandbox', icon: 'code' },
+      { id: 'blog', label: 'Blog', icon: 'pen-tool' },
+      { id: 'snippets', label: 'Snippets', icon: 'scissors' },
+      { id: 'resources', label: 'Resources', icon: 'book-open' },
+    ]
+  },
+  settings: {
+    title: 'Settings',
+    icon: 'settings',
+    subtitle: 'Customize',
+    type: 'theme',
+    items: [
+      { id: 'theme-dark', label: 'Dark Mode', icon: 'moon' },
+      { id: 'theme-light', label: 'Light Mode', icon: 'sun' },
+    ]
+  },
+  social: {
+    title: 'Connect',
+    icon: 'users',
+    subtitle: 'Social links',
+    type: 'social',
+    items: [
+      { id: 'github', label: 'GitHub', icon: 'github', color: '#f0f0f0' },
+      { id: 'linkedin', label: 'LinkedIn', icon: 'linkedin', color: '#0077B5' },
+      { id: 'twitter', label: 'Twitter', icon: 'twitter', color: '#1DA1F2' },
+      { id: 'email', label: 'Email', icon: 'mail', color: '#EA4335' },
+    ]
+  },
+  workspace: {
+    title: 'Workspace',
+    icon: 'briefcase',
+    subtitle: 'Recent & pinned',
+    type: 'workspace',
+    items: [
+      { id: 'recent1', label: 'Smart Dock v2', color: '#DC2626', pinned: true },
+      { id: 'recent2', label: 'Portfolio Redesign', color: '#EF4444', pinned: true },
+      { id: 'recent3', label: 'AI Dashboard', color: '#B91C1C', pinned: false },
+      { id: 'recent4', label: 'E-Commerce App', color: '#991B1B', pinned: false },
+    ]
+  }
+};
+
+const submenuData = {
+  'web-apps': {
+    title: 'Web Apps',
+    items: [
+      { id: 'ecommerce', label: 'E-Commerce', icon: 'shopping-cart', hasSubmenu: true, submenu: 'ecommerce-sub' },
+      { id: 'saas', label: 'SaaS Platform', icon: 'cloud', hasSubmenu: true, submenu: 'saas-sub' },
+      { id: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
+      { id: 'landing', label: 'Landing Pages', icon: 'globe' },
+    ]
+  },
+  'all-projects': {
+    title: 'All Projects',
+    items: [
+      { id: 'p1', label: 'Smart Dock', icon: 'dock', badge: 'New' },
+      { id: 'p2', label: 'AI Assistant', icon: 'sparkles' },
+      { id: 'p3', label: 'Design System', icon: 'palette', badge: '3' },
+      { id: 'p4', label: 'Mobile App', icon: 'smartphone' },
+    ]
+  },
+  'mobile-apps': {
+    title: 'Mobile Apps',
+    items: [
+      { id: 'ios', label: 'iOS App', icon: 'smartphone' },
+      { id: 'android', label: 'Android App', icon: 'smartphone' },
+      { id: 'flutter', label: 'Flutter App', icon: 'code' },
+    ]
+  },
+  'ui-designs': {
+    title: 'UI/UX Designs',
+    items: [
+      { id: 'figma', label: 'Figma Files', icon: 'figma' },
+      { id: 'prototypes', label: 'Prototypes', icon: 'layers' },
+      { id: 'components', label: 'Components', icon: 'component' },
+    ]
+  },
+  'case-studies': {
+    title: 'Case Studies',
+    items: [
+      { id: 'cs1', label: 'E-Commerce Redesign', icon: 'file-text' },
+      { id: 'cs2', label: 'SaaS Onboarding', icon: 'file-text' },
+      { id: 'cs3', label: 'Mobile Banking', icon: 'file-text' },
+    ]
+  },
+  'ecommerce-sub': {
+    title: 'E-Commerce',
+    items: [
+      { id: 'shop1', label: 'Fashion Store', icon: 'shopping-bag' },
+      { id: 'shop2', label: 'Tech Store', icon: 'shopping-bag' },
+      { id: 'shop3', label: 'Food Delivery', icon: 'shopping-bag' },
+    ]
+  },
+  'saas-sub': {
+    title: 'SaaS Platform',
+    items: [
+      { id: 'saas1', label: 'Analytics Dashboard', icon: 'bar-chart' },
+      { id: 'saas2', label: 'CRM System', icon: 'users' },
+      { id: 'saas3', label: 'Project Manager', icon: 'kanban' },
+    ]
+  }
+};
+
+const dockContainer = document.getElementById('dockContainer');
+const dock = document.getElementById('dock');
+const centerBtn = document.getElementById('centerBtn');
+const centerIcon = document.getElementById('centerIcon');
+const menuOverlay = document.getElementById('menuOverlay');
+const menuCards = document.getElementById('menuCards');
+const ambientGlow = document.getElementById('ambientGlow');
+const submenuOverlay = document.getElementById('submenuOverlay');
+const submenuPanel = document.getElementById('submenuPanel');
+const submenuTitle = document.getElementById('submenuTitle');
+const submenuContent = document.getElementById('submenuContent');
+const submenuBack = document.getElementById('submenuBack');
+const breadcrumb = document.getElementById('breadcrumb');
+const commandPalette = document.getElementById('commandPalette');
+const commandSearch = document.getElementById('commandSearch');
+const radialMenu = document.getElementById('radialMenu');
+const contextMenu = document.getElementById('contextMenu');
+const miniPlayer = document.getElementById('miniPlayer');
+const aiPanel = document.getElementById('aiPanel');
+const aiPanelOverlay = document.getElementById('aiPanelOverlay');
+const dragHandle = document.getElementById('dragHandle');
+const toastEl = document.getElementById('toast');
+const toastText = document.getElementById('toastText');
+const scrollHint = document.getElementById('scrollHint');
+
+function refreshIcons() {
+  if (window.lucide) lucide.createIcons();
+}
+
+function showToast(msg) {
+  toastText.textContent = msg;
+  toastEl.classList.add('visible');
+  setTimeout(() => toastEl.classList.remove('visible'), 2500);
+}
+
+function togglePlay() {
+  state.isPlaying = !state.isPlaying;
+  const btn = document.getElementById('playBtn');
+  btn.innerHTML = state.isPlaying
+    ? '<i data-lucide="pause" style="width:14px;height:14px;color:var(--accent);"></i>'
+    : '<i data-lucide="play" style="width:14px;height:14px;color:var(--accent);"></i>';
+  refreshIcons();
+  showToast(state.isPlaying ? 'Playing' : 'Paused');
+}
+
+// FIXED: switchTab now also controls mini player visibility based on scroll position
+function switchTab(tab) {
+  state.activeTab = tab;
+  document.querySelectorAll('.dock-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  if (navigator.vibrate) navigator.vibrate(10);
+
+  // Only show mini player if on home tab AND not scrolled down
+  if (tab === 'home' && !state.playerHidden) {
+    miniPlayer.classList.add('visible');
+    miniPlayer.classList.remove('hidden-player');
+  } else {
+    miniPlayer.classList.remove('visible');
+    miniPlayer.classList.add('hidden-player');
+  }
+  showToast(`Switched to ${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+}
+
+function toggleDock() {
+  state.expanded = !state.expanded;
+  if (state.expanded) {
+    ambientGlow.classList.add('expanded');
+    menuOverlay.classList.add('visible');
+    renderMenuCards();
+    centerIcon.setAttribute('data-lucide', 'x');
+    refreshIcons();
+    showToast('Dock expanded');
+  } else {
+    ambientGlow.classList.remove('expanded');
+    menuOverlay.classList.remove('visible');
+    menuCards.innerHTML = '';
+    centerIcon.setAttribute('data-lucide', 'plus');
+    refreshIcons();
+    closeAllPanels();
+  }
+}
+
+function renderMenuCards() {
+  const cards = ['projects', 'quickActions', 'tools', 'settings'];
+  menuCards.innerHTML = '';
+
+  cards.forEach((key, index) => {
+    const data = menuData[key];
+    const card = document.createElement('div');
+    card.className = `menu-card stagger-${index + 1}`;
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', `${data.title} menu`);
+
+    let content = `
+      <div class="menu-card-header">
+        <div class="menu-card-icon"><i data-lucide="${data.icon}"></i></div>
+        <div>
+          <div class="menu-card-title">${data.title}</div>
+          <div class="menu-card-subtitle">${data.subtitle}</div>
+        </div>
+      </div>
+    `;
+
+    if (data.type === 'list') {
+      data.items.forEach(item => {
+        content += `
+          <div class="menu-item" onclick="handleMenuItem('${key}', '${item.id}', ${item.hasSubmenu || false}, '${item.submenu || ''}')" role="button" tabindex="0">
+            <div class="menu-item-icon"><i data-lucide="${item.icon}"></i></div>
+            <span class="menu-item-text">${item.label}</span>
+            ${item.badge ? `<span class="menu-item-badge">${item.badge}</span>` : ''}
+            ${item.hasSubmenu ? '<i data-lucide="chevron-right" class="menu-item-arrow"></i>' : ''}
+          </div>
+        `;
+      });
+      content += `<div class="view-all-btn" onclick="showToast('Viewing all ${data.title}')"><span>View All</span><i data-lucide="arrow-right"></i></div>`;
+    } else if (data.type === 'action') {
+      data.items.forEach(item => {
+        content += `
+          <div class="action-btn" onclick="showToast('${item.label} clicked')">
+            <i data-lucide="${item.icon}"></i>
+            <span>${item.label}</span>
+          </div>
+        `;
+      });
+    } else if (data.type === 'grid') {
+      content += '<div class="grid-card">';
+      data.items.forEach(item => {
+        content += `
+          <div class="grid-item" onclick="showToast('${item.label} opened')">
+            <div class="grid-item-icon"><i data-lucide="${item.icon}"></i></div>
+            <span class="grid-item-label">${item.label}</span>
+          </div>
+        `;
+      });
+      content += '</div>';
+    } else if (data.type === 'theme') {
+      content += `
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-weight:600;">Theme Mode</div>
+        <div class="theme-option ${state.theme === 'dark' ? 'active' : ''}" onclick="setTheme('dark')">
+          <div class="theme-swatch" style="background:#0a0a0a;"></div>
+          <span style="font-size:13px;color:var(--text-primary);">Dark</span>
+        </div>
+        <div class="theme-option ${state.theme === 'light' ? 'active' : ''}" onclick="setTheme('light')">
+          <div class="theme-swatch" style="background:#ffffff;border-color:rgba(0,0,0,0.1);"></div>
+          <span style="font-size:13px;color:var(--text-primary);">Light</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin:12px 0 8px;font-weight:600;">Accent Color</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <div class="accent-dot ${state.accent === 'red' ? 'active' : ''}" style="background:#DC2626;" onclick="setAccent('red')"></div>
+          <div class="accent-dot" style="background:#EF4444;" onclick="setAccent('red-light')"></div>
+          <div class="accent-dot" style="background:#B91C1C;" onclick="setAccent('red-dark')"></div>
+        </div>
+      `;
+    }
+
+    card.innerHTML = content;
+    menuCards.appendChild(card);
+    setTimeout(() => card.classList.add('visible'), 50 + index * 80);
+  });
+
+  refreshIcons();
+}
+
+function handleMenuItem(cardKey, itemId, hasSubmenu, submenuId) {
+  if (hasSubmenu && submenuId) {
+    openSubmenu(submenuId);
+  } else {
+    showToast(`Opened ${itemId}`);
+  }
+}
+
+function openSubmenu(submenuId) {
+  const data = submenuData[submenuId];
+  if (!data) return;
+  state.submenuStack.push({ id: submenuId, ...data });
+  renderSubmenu();
+  submenuOverlay.classList.add('visible');
+  submenuPanel.classList.add('visible');
+}
+
+function renderSubmenu() {
+  const current = state.submenuStack[state.submenuStack.length - 1];
+  submenuTitle.textContent = current.title;
+
+  let bcHTML = '';
+  state.submenuStack.forEach((item, i) => {
+    if (i > 0) bcHTML += '<span class="breadcrumb-sep">/</span>';
+    bcHTML += `<span class="breadcrumb-item" onclick="goToBreadcrumb(${i})">${item.title}</span>`;
+  });
+  breadcrumb.innerHTML = bcHTML;
+
+  let content = '';
+  current.items.forEach(item => {
+    content += `
+      <div class="menu-item" onclick="${item.hasSubmenu ? `openSubmenu('${item.submenu}')` : `showToast('${item.label}')`}" role="button" tabindex="0">
+        <div class="menu-item-icon"><i data-lucide="${item.icon}"></i></div>
+        <span class="menu-item-text">${item.label}</span>
+        ${item.badge ? `<span class="menu-item-badge">${item.badge}</span>` : ''}
+        ${item.hasSubmenu ? '<i data-lucide="chevron-right" class="menu-item-arrow"></i>' : ''}
+      </div>
+    `;
+  });
+  submenuContent.innerHTML = content;
+  refreshIcons();
+}
+
+function goToBreadcrumb(index) {
+  state.submenuStack = state.submenuStack.slice(0, index + 1);
+  if (index === 0) {
+    closeSubmenu();
+  } else {
+    renderSubmenu();
+  }
+}
+
+function closeSubmenu() {
+  submenuOverlay.classList.remove('visible');
+  submenuPanel.classList.remove('visible');
+  state.submenuStack = [];
+}
+
+function closeAllPanels() {
+  closeSubmenu();
+  commandPalette.classList.remove('visible');
+  radialMenu.innerHTML = '';
+  hideAiPanel();
+  hideContextMenu();
+}
+
+function showAiPanel() {
+  aiPanel.classList.add('visible');
+  aiPanelOverlay.classList.add('visible');
+}
+
+function hideAiPanel() {
+  aiPanel.classList.remove('visible');
+  aiPanelOverlay.classList.remove('visible');
+}
+
+function setTheme(theme) {
+  state.theme = theme;
+  document.body.setAttribute('data-theme', theme);
+  showToast(`Theme: ${theme}`);
+  if (state.expanded) renderMenuCards();
+}
+
+function setAccent(accent) {
+  state.accent = accent;
+  const colors = {
+    'red': '#DC2626',
+    'red-light': '#EF4444',
+    'red-dark': '#B91C1C'
+  };
+  const color = colors[accent] || '#DC2626';
+  document.documentElement.style.setProperty('--accent', color);
+  document.documentElement.style.setProperty('--accent-light', accent === 'red-dark' ? '#DC2626' : '#F87171');
+  document.documentElement.style.setProperty('--accent-rgb', accent === 'red' ? '220, 38, 38' : accent === 'red-light' ? '239, 68, 68' : '185, 28, 28');
+  document.documentElement.style.setProperty('--glow-color', `rgba(${accent === 'red' ? '220, 38, 38' : accent === 'red-light' ? '239, 68, 68' : '185, 28, 28'}, 0.3)`);
+  showToast(`Accent: ${accent}`);
+  if (state.expanded) renderMenuCards();
+}
+
+function toggleCommandPalette() {
+  const isVisible = commandPalette.classList.contains('visible');
+  if (isVisible) {
+    commandPalette.classList.remove('visible');
+  } else {
+    commandPalette.classList.add('visible');
+    setTimeout(() => commandSearch.focus(), 100);
+  }
+}
+
+function executeCommand(cmd) {
+  commandPalette.classList.remove('visible');
+  const messages = {
+    home: 'Navigated to Home',
+    projects: 'Opening Projects',
+    theme: 'Opening Theme Settings',
+    search: 'Opening Search',
+    about: 'Navigated to About',
+    contact: 'Opening Contact',
+    settings: 'Opening Settings'
+  };
+  showToast(messages[cmd] || 'Command executed');
+}
+
+function showRadialMenu() {
+  const actions = [
+    { icon: 'search', label: 'Search' },
+    { icon: 'sparkles', label: 'AI' },
+    { icon: 'pin', label: 'Pin' },
+    { icon: 'star', label: 'Favorite' },
+    { icon: 'share-2', label: 'Share' },
+  ];
+
+  radialMenu.innerHTML = '';
+  const radius = 80;
+
+  actions.forEach((action, i) => {
+    const angle = (Math.PI * 2 * i) / actions.length - Math.PI / 2;
+    const x = Math.cos(angle) * radius - 22;
+    const y = Math.sin(angle) * radius - 22;
+
+    const item = document.createElement('div');
+    item.className = 'radial-item';
+    item.style.left = `${x}px`;
+    item.style.top = `${y}px`;
+    item.innerHTML = `<i data-lucide="${action.icon}"></i>`;
+    item.title = action.label;
+    item.onclick = () => {
+      showToast(`${action.label} action`);
+      hideRadialMenu();
+    };
+    radialMenu.appendChild(item);
+
+    setTimeout(() => item.classList.add('visible'), 30 + i * 50);
+  });
+
+  refreshIcons();
+}
+
+function hideRadialMenu() {
+  const items = radialMenu.querySelectorAll('.radial-item');
+  items.forEach((item, i) => {
+    setTimeout(() => item.classList.remove('visible'), i * 30);
+  });
+  setTimeout(() => { radialMenu.innerHTML = ''; }, 300);
+}
+
+function showContextMenu(x, y) {
+  const menuWidth = 200;
+  const menuHeight = 180;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  let adjustedX = x;
+  let adjustedY = y;
+
+  if (x + menuWidth > viewportWidth) {
+    adjustedX = viewportWidth - menuWidth - 10;
+  }
+  if (y + menuHeight > viewportHeight) {
+    adjustedY = viewportHeight - menuHeight - 10;
+  }
+  if (adjustedX < 10) adjustedX = 10;
+  if (adjustedY < 10) adjustedY = 10;
+
+  contextMenu.style.left = `${adjustedX}px`;
+  contextMenu.style.top = `${adjustedY}px`;
+  contextMenu.classList.add('visible');
+}
+
+function hideContextMenu() {
+  contextMenu.classList.remove('visible');
+}
+
+function handleContextAction(action) {
+  const messages = {
+    pin: 'Pinned to Dock!',
+    favorite: 'Added to favorites!',
+    share: 'Shared!',
+    remove: 'Removed'
+  };
+  showToast(messages[action] || 'Action completed');
+  hideContextMenu();
+}
+
+function addMagneticEffect(el) {
+  el.addEventListener('mousemove', (e) => {
+    const rect = el.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    el.style.transform = `translate(${x * 0.15}px, ${y * 0.15}px)`;
+  });
+  el.addEventListener('mouseleave', () => {
+    el.style.transform = '';
+  });
+}
+
+// FIXED: Unified scroll handler that hides BOTH dock AND mini player on scroll down
+let scrollTimeout;
+window.addEventListener('scroll', () => {
+  const currentScroll = window.scrollY;
+  const isScrollingDown = currentScroll > state.lastScrollY;
+
+  if (isScrollingDown && currentScroll > 80) {
+    // Hide dock
+    dockContainer.classList.add('hidden-dock');
+    // Hide mini player too
+    miniPlayer.classList.add('hidden-player');
+    miniPlayer.classList.remove('visible');
+    state.playerHidden = true;
+    state.dockHidden = true;
+    scrollHint.classList.add('visible');
+  } else {
+    // Show dock
+    dockContainer.classList.remove('hidden-dock');
+    state.dockHidden = false;
+    // Show mini player only if on home tab
+    if (state.activeTab === 'home') {
+      miniPlayer.classList.remove('hidden-player');
+      miniPlayer.classList.add('visible');
+      state.playerHidden = false;
+    }
+    scrollHint.classList.remove('visible');
+  }
+  state.lastScrollY = currentScroll;
+
+  clearTimeout(scrollTimeout);
+  scrollTimeout = setTimeout(() => {
+    scrollHint.classList.remove('visible');
+  }, 2000);
+});
+
+// Center button events
+centerBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const now = Date.now();
+  if (now - state.lastTap < 300) {
+    switchTab('home');
+    if (state.expanded) toggleDock();
+    return;
+  }
+  state.lastTap = now;
+  toggleDock();
+});
+
+let longPressTimeout;
+centerBtn.addEventListener('mousedown', (e) => {
+  longPressTimeout = setTimeout(() => {
+    if (!state.expanded) toggleDock();
+    showRadialMenu();
+  }, 600);
+});
+centerBtn.addEventListener('mouseup', () => clearTimeout(longPressTimeout));
+centerBtn.addEventListener('mouseleave', () => clearTimeout(longPressTimeout));
+centerBtn.addEventListener('touchstart', (e) => {
+  longPressTimeout = setTimeout(() => {
+    if (!state.expanded) toggleDock();
+    showRadialMenu();
+  }, 600);
+}, { passive: true });
+centerBtn.addEventListener('touchend', () => clearTimeout(longPressTimeout));
+
+menuOverlay.addEventListener('click', () => {
+  if (state.expanded) toggleDock();
+});
+
+submenuBack.addEventListener('click', () => {
+  if (state.submenuStack.length > 1) {
+    state.submenuStack.pop();
+    renderSubmenu();
+  } else {
+    closeSubmenu();
+  }
+});
+
+submenuOverlay.addEventListener('click', closeSubmenu);
+
+aiPanelOverlay.addEventListener('click', () => {
+  hideAiPanel();
+});
+
+commandSearch.addEventListener('input', (e) => {
+  const query = e.target.value.toLowerCase();
+  const items = document.querySelectorAll('#commandResults .menu-item');
+  items.forEach(item => {
+    const text = item.textContent.toLowerCase();
+    item.style.display = text.includes(query) ? 'flex' : 'none';
+  });
+});
+
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    toggleCommandPalette();
+  }
+  if (e.key === 'Escape') {
+    if (commandPalette.classList.contains('visible')) {
+      commandPalette.classList.remove('visible');
+    } else if (state.submenuStack.length > 0) {
+      closeSubmenu();
+    } else if (state.expanded) {
+      toggleDock();
+    }
+    hideContextMenu();
+    hideRadialMenu();
+    hideAiPanel();
+  }
+});
+
+let dragStartY = 0;
+let isDragging = false;
+
+dragHandle.addEventListener('touchstart', (e) => {
+  dragStartY = e.touches[0].clientY;
+  isDragging = true;
+}, { passive: true });
+
+dragHandle.addEventListener('touchmove', (e) => {
+  if (!isDragging) return;
+  const diff = dragStartY - e.touches[0].clientY;
+  if (diff > 30 && !state.expanded) {
+    toggleDock();
+    isDragging = false;
+  } else if (diff < -30 && state.expanded) {
+    toggleDock();
+    isDragging = false;
+  }
+}, { passive: true });
+
+dragHandle.addEventListener('touchend', () => { isDragging = false; });
+
+document.querySelectorAll('.dock-btn').forEach(btn => {
+  btn.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    showContextMenu(e.clientX, e.clientY);
+  });
+
+  btn.addEventListener('touchstart', (e) => {
+    longPressTimeout = setTimeout(() => {
+      const touch = e.touches[0];
+      showContextMenu(touch.clientX, touch.clientY);
+    }, 500);
+  }, { passive: true });
+  btn.addEventListener('touchend', () => clearTimeout(longPressTimeout));
+});
+
+document.addEventListener('click', (e) => {
+  if (!contextMenu.contains(e.target)) hideContextMenu();
+});
+
+document.querySelectorAll('.dock-btn, .center-btn').forEach(btn => {
+  addMagneticEffect(btn);
+});
+
+// Double tap on Projects button to show AI panel
+document.querySelectorAll('.dock-btn[data-tab="projects"]').forEach(btn => {
+  let lastTapTime = 0;
+  btn.addEventListener('click', (e) => {
+    const now = Date.now();
+    if (now - lastTapTime < 400) {
+      showAiPanel();
+    }
+    lastTapTime = now;
+  });
+});
+
+let aiLongPressTimer;
+centerBtn.addEventListener('touchstart', (e) => {
+  aiLongPressTimer = setTimeout(() => {
+    if (state.expanded) {
+      showAiPanel();
+    }
+  }, 1000);
+}, { passive: true });
+centerBtn.addEventListener('touchend', () => clearTimeout(aiLongPressTimer));
+centerBtn.addEventListener('touchmove', () => clearTimeout(aiLongPressTimer));
+
+commandPalette.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') {
+    const focusable = commandPalette.querySelectorAll('input, [tabindex="0"]');
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+});
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('online', () => showToast('Back online'));
+  window.addEventListener('offline', () => showToast('Offline mode'));
+}
+
+refreshIcons();
+
+// Show mini player after initial load (only if not scrolled)
+setTimeout(() => {
+  if (state.activeTab === 'home' && !state.playerHidden) {
+    miniPlayer.classList.add('visible');
+  }
+}, 1500);
+
+setTimeout(() => {
+  scrollHint.classList.add('visible');
+  setTimeout(() => scrollHint.classList.remove('visible'), 4000);
+}, 3000);
+
+console.log('🚀 Smart Dock Blueprint - Mini player now hides on scroll');
+</script>
+</body>
+</html>
+
