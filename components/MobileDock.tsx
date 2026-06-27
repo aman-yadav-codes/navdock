@@ -1261,34 +1261,51 @@ export const MobileDock: React.FC<MobileDockProps> = ({
               style={{ zIndex: 249, pointerEvents: 'auto' }}
               onClick={() => setContextMenu({ visible: false, x: 0, y: 0, item: null })}
             />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={easeTransition}
-              className="context-menu"
-              style={{
-                left: `${contextMenu.x}px`,
-                top: `${contextMenu.y - 120}px`,
-              }}
-            >
-              <div className="context-item text-left" onClick={() => handleContextAction('pin')}>
-                <Icons.Pin className="w-4 h-4 text-[var(--text-secondary)]" />
-                <span>Pin to Dock</span>
-              </div>
-              <div className="context-item text-left" onClick={() => handleContextAction('favorite')}>
-                <Icons.Star className="w-4 h-4 text-[var(--text-secondary)]" />
-                <span>Add to Favorites</span>
-              </div>
-              <div className="context-item text-left" onClick={() => handleContextAction('share')}>
-                <Icons.Share2 className="w-4 h-4 text-[var(--text-secondary)]" />
-                <span>Share</span>
-              </div>
-              <div className="context-item danger text-left" onClick={() => handleContextAction('remove')}>
-                <Icons.Trash2 className="w-4 h-4 text-[var(--accent)]" />
-                <span>Remove</span>
-              </div>
-            </motion.div>
+            {(() => {
+              const contextMenuWidth = 180;
+              let leftPos = contextMenu.x;
+              let topPos = contextMenu.y - 120;
+              
+              if (typeof window !== 'undefined') {
+                if (leftPos + contextMenuWidth > window.innerWidth - 16) {
+                  leftPos = Math.max(16, window.innerWidth - contextMenuWidth - 16);
+                }
+                if (topPos < 16) {
+                  topPos = contextMenu.y + 20;
+                }
+              }
+              
+              return (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={easeTransition}
+                  className="context-menu"
+                  style={{
+                    left: `${leftPos}px`,
+                    top: `${topPos}px`,
+                  }}
+                >
+                  <div className="context-item text-left" onClick={() => handleContextAction('pin')}>
+                    <Icons.Pin className="w-4 h-4 text-[var(--text-secondary)]" />
+                    <span>Pin to Dock</span>
+                  </div>
+                  <div className="context-item text-left" onClick={() => handleContextAction('favorite')}>
+                    <Icons.Star className="w-4 h-4 text-[var(--text-secondary)]" />
+                    <span>Add to Favorites</span>
+                  </div>
+                  <div className="context-item text-left" onClick={() => handleContextAction('share')}>
+                    <Icons.Share2 className="w-4 h-4 text-[var(--text-secondary)]" />
+                    <span>Share</span>
+                  </div>
+                  <div className="context-item danger text-left" onClick={() => handleContextAction('remove')}>
+                    <Icons.Trash2 className="w-4 h-4 text-[var(--accent)]" />
+                    <span>Remove</span>
+                  </div>
+                </motion.div>
+              );
+            })()}
           </>
         )}
       </AnimatePresence>
