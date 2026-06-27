@@ -431,6 +431,10 @@ export const MobileDock: React.FC<MobileDockProps> = ({
       window.navigator.vibrate(10);
     }
 
+    // Close all open panels when switching tabs
+    closeAllPanels();
+    setExpanded(false);
+
     // Floating mini player displays only on 'home' tab and if not scrolled
     if (tabId === 'home' && !playerHidden) {
       setPlayerHidden(false);
@@ -453,10 +457,9 @@ export const MobileDock: React.FC<MobileDockProps> = ({
   const toggleDock = () => {
     setExpanded(prev => {
       const next = !prev;
+      closeAllPanels();
       if (next) {
         showToast('Dock expanded');
-      } else {
-        closeAllPanels();
       }
       return next;
     });
