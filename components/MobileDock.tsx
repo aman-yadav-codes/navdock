@@ -1340,14 +1340,6 @@ export const MobileDock: React.FC<MobileDockProps> = ({
                     <Icons.Trash2 className="w-4 h-4 text-[var(--accent)]" />
                     <span>Remove</span>
                   </div>
-
-                  {/* Tooltip triangle arrow */}
-                  <div
-                    className={topPos > contextMenu.y ? "context-menu-arrow arrow-top" : "context-menu-arrow arrow-bottom"}
-                    style={{
-                      left: `${Math.max(12, Math.min(contextMenuWidth - 12, contextMenu.x - leftPos))}px`
-                    }}
-                  />
                 </motion.div>
               );
             })()}
