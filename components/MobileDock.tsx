@@ -253,6 +253,22 @@ const defaultSubmenus: Record<string, SubmenuSection> = {
       { id: 'p2', label: 'AI Assistant', icon: 'sparkles' },
       { id: 'p3', label: 'Design System', icon: 'palette', badge: '3' },
       { id: 'p4', label: 'Mobile App', icon: 'smartphone' },
+      { id: 'p5', label: 'E-Commerce Website', icon: 'shopping-cart' },
+      { id: 'p6', label: 'SaaS Platform', icon: 'cloud' },
+      { id: 'p7', label: 'Developer Blog', icon: 'book-open' },
+      { id: 'p8', label: 'Portfolio Redesign', icon: 'user' },
+      { id: 'p9', label: 'AI Code Editor', icon: 'code' },
+      { id: 'p10', label: 'Analytics Dashboard', icon: 'bar-chart' },
+      { id: 'p11', label: 'CRM System', icon: 'users' },
+      { id: 'p12', label: 'Chat Application', icon: 'message-square' },
+      { id: 'p13', label: 'Task Manager', icon: 'check-square' },
+      { id: 'p14', label: 'Crypto Wallet', icon: 'wallet' },
+      { id: 'p15', label: 'Video Player', icon: 'video' },
+      { id: 'p16', label: 'Weather App', icon: 'cloud-rain' },
+      { id: 'p17', label: 'Fitness Tracker', icon: 'heart' },
+      { id: 'p18', label: 'Recipes Portal', icon: 'coffee' },
+      { id: 'p19', label: 'Job Search Board', icon: 'briefcase' },
+      { id: 'p20', label: 'Calendar Planner', icon: 'calendar' }
     ]
   },
   'mobile-apps': {
@@ -617,6 +633,19 @@ export const MobileDock: React.FC<MobileDockProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Prevent background scroll when overlays are open
+  useEffect(() => {
+    const isAnyPanelOpen = expanded || submenuStack.length > 0 || aiPanelVisible || commandPaletteVisible;
+    if (isAnyPanelOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [expanded, submenuStack.length, aiPanelVisible, commandPaletteVisible]);
+
   // Long press helper for buttons (context menus)
   const startLongPress = (e: React.TouchEvent | React.MouseEvent, item: DockItem) => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
@@ -965,7 +994,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
               exit={{ opacity: 0 }}
               transition={easeTransition}
               className="submenu-overlay"
-              style={{ zIndex: 110, pointerEvents: 'auto' }}
+              style={{ zIndex: 110, pointerEvents: 'auto', touchAction: 'none' }}
               onClick={() => setSubmenuStack([])}
             />
             <motion.div
